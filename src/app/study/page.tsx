@@ -2,14 +2,11 @@ export const runtime = "edge";
 
 import { db } from '@/lib/db'
 import { lessons as lessonsSchema } from '@/lib/db/schema'
-import { eq, desc, inArray, count } from 'drizzle-orm'
+import { eq, desc, inArray, count, ne } from 'drizzle-orm'
 import StudyMenu from './StudyMenu'
 import ProLink from './ProLink'
 import Link from 'next/link'
 import SearchFilter from './SearchFilter'
-
-
-
 
 const getTitle = (d: any, type: string) => {
   if (d.title) return d.title;
@@ -67,20 +64,21 @@ export default async function StudyRoom({ searchParams }: { searchParams: Promis
   const take = view === 'roadmap' ? 1000 : 40
   const skip = (page - 1) * take
   
-  let typeFilter: any = { not: 'unknown' };
-  if (cat === 'writing' || cat === 'ielts') typeFilter = { in: ['ielts_task1', 'ielts_task2'] };
-  if (cat === 'translation') typeFilter = 'translation';
-  if (cat === 'bilingual' || cat === 'reading') typeFilter = { in: ['reading', 'press'] };
-  if (cat === 'voa' || cat === 'listening') typeFilter = 'listening';
-  if (cat === 'ielts_reading' || cat === 'article') typeFilter = 'article';
-  if (cat === 'sat' || cat === 'grammar') typeFilter = { in: ['grammar', 'reading'] };
+  let whereCondition;
+  if (cat === 'writing' || cat === 'ielts') whereCondition = inArray(lessonsSchema.type, ['ielts_task1', 'ielts_task2']);
+  else if (cat === 'translation') whereCondition = eq(lessonsSchema.type, 'translation');
+  else if (cat === 'bilingual' || cat === 'reading') whereCondition = inArray(lessonsSchema.type, ['reading', 'press']);
+  else if (cat === 'voa' || cat === 'listening') whereCondition = eq(lessonsSchema.type, 'listening');
+  else if (cat === 'ielts_reading' || cat === 'article') whereCondition = eq(lessonsSchema.type, 'article');
+  else if (cat === 'sat' || cat === 'grammar') whereCondition = inArray(lessonsSchema.type, ['grammar', 'reading']);
+  else whereCondition = ne(lessonsSchema.type, 'unknown');
 
   let lessons = [];
   let totalLessons = 0;
 
   if (q) {
     const allLessons = await db.query.lessons.findMany({
-      where: typeFilter ? inArray(lessonsSchema.type, Array.isArray(typeFilter) ? typeFilter as any[] : [typeFilter as any]) : undefined,
+      where: whereCondition,
       orderBy: [desc(lessonsSchema.id)]
     });
     const filtered = allLessons.filter(l => {
@@ -91,7 +89,6 @@ export default async function StudyRoom({ searchParams }: { searchParams: Promis
     totalLessons = filtered.length;
     lessons = filtered.slice(skip, skip + take);
   } else {
-    const whereCondition = typeFilter ? inArray(lessonsSchema.type, Array.isArray(typeFilter) ? typeFilter as any[] : [typeFilter as any]) : undefined;
     const results = await Promise.all([
       db.query.lessons.findMany({
         where: whereCondition,
