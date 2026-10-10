@@ -11,10 +11,15 @@ export default async function QuestPage() {
     redirect('/login');
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email! },
-    include: { progress: true }
-  });
+  const [user, completedCount] = await Promise.all([
+    prisma.user.findUnique({
+      where: { email: session.user.email! },
+      select: { id: true, name: true, streak: true, gems: true, dailyGoal: true }
+    }),
+    prisma.userProgress.count({
+      where: { user: { email: session.user.email! }, completed: true }
+    })
+  ])
 
   if (!user) {
     redirect('/login');

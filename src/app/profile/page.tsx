@@ -13,12 +13,15 @@ export default async function ProfilePage() {
 
   const user = await prisma.user.findUnique({
     where: { email: session.user.email! },
-    include: {
+    select: {
+      id: true, name: true, image: true, email: true,
+      streak: true, gems: true, currentBand: true, targetBand: true,
       essays: {
         orderBy: { submittedAt: 'desc' },
         take: 10,
-        include: {
-          lesson: true
+        select: {
+          id: true, band: true, submittedAt: true,
+          lesson: { select: { id: true, type: true, data: true } }
         }
       }
     }
