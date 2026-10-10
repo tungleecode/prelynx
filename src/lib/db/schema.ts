@@ -111,6 +111,23 @@ export const flashcardReviews = mysqlTable("FlashcardReview", {
   userIdWordIdx: uniqueIndex("userId_word").on(table.userId, table.word),
 }));
 
+export const vocabDecks = mysqlTable("VocabDeck", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  title: varchar("title", { length: 255 }).notNull(),
+  category: varchar("category", { length: 255 }), // e.g., 'ielts', 'sat'
+  description: text("description"),
+  createdAt: datetime("createdAt", { mode: "date", fsp: 3 }).notNull(),
+});
+
+export const vocabCards = mysqlTable("VocabCard", {
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
+  deckId: varchar("deckId", { length: 255 }).notNull(),
+  word: varchar("word", { length: 255 }).notNull(),
+  meaning: text("meaning").notNull(),
+  example: text("example"),
+  createdAt: datetime("createdAt", { mode: "date", fsp: 3 }).notNull(),
+});
+
 import { relations } from 'drizzle-orm';
 
 export const usersRelations = relations(users, ({ many }) => ({
@@ -146,4 +163,12 @@ export const accountsRelations = relations(accounts, ({ one }) => ({
 
 export const sessionsRelations = relations(sessions, ({ one }) => ({
   user: one(users, { fields: [sessions.userId], references: [users.id] }),
+}));
+
+export const vocabDecksRelations = relations(vocabDecks, ({ many }) => ({
+  cards: many(vocabCards),
+}));
+
+export const vocabCardsRelations = relations(vocabCards, ({ one }) => ({
+  deck: one(vocabDecks, { fields: [vocabCards.deckId], references: [vocabDecks.id] }),
 }));

@@ -4,10 +4,13 @@ import { lessons as lessonsSchema } from '@/lib/db/schema'
 import { eq, desc } from 'drizzle-orm'
 import Link from 'next/link'
 
-export default async function PracticePage() {
-  // Lấy ra một số bài đọc ngẫu nhiên hoặc mới nhất để làm grid
+export default async function PracticePage({ searchParams }: { searchParams: Promise<{ type?: string }> }) {
+  const resolvedParams = await searchParams;
+  const currentType = resolvedParams.type || 'reading';
+  
+  // Lấy ra các bài học theo bộ lọc
   const lessons = await db.query.lessons.findMany({
-    where: eq(lessonsSchema.type, 'reading'),
+    where: eq(lessonsSchema.type, currentType),
     limit: 12,
     orderBy: [desc(lessonsSchema.id)]
   });
@@ -58,13 +61,14 @@ export default async function PracticePage() {
          <div className="w-full md:w-64 shrink-0 flex flex-col gap-4">
             
             {/* Reading Accordion */}
-            <div className="clay-card bg-white rounded-md overflow-hidden border border-orange-100">
-               <div className="px-5 py-4 flex items-center justify-between bg-orange-50/50 cursor-pointer">
+            <div className={`clay-card bg-white rounded-md overflow-hidden ${currentType === 'reading' ? 'border-orange-200' : 'border-transparent'}`}>
+               <Link href="/practice?type=reading" className={`px-5 py-4 flex items-center justify-between cursor-pointer ${currentType === 'reading' ? 'bg-orange-50/50' : 'hover:bg-gray-50'}`}>
                   <div className="flex items-center gap-3">
                      <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"/></svg>
-                     <span className="font-black text-gray-800">Reading</span>
+                     <span className={`font-black ${currentType === 'reading' ? 'text-gray-800' : 'text-gray-500'}`}>Reading</span>
                   </div>
-               </div>
+               </Link>
+               {currentType === 'reading' && (
                <div className="p-4 flex flex-col gap-3">
                   <h4 className="font-bold flex items-center gap-2 text-gray-800 mb-1">
                      <div className="w-3 h-3 rounded-md border-2 border-[#c1a063]"></div>
@@ -94,23 +98,25 @@ export default async function PracticePage() {
                      Full đề — 3 passage, 60 phút
                   </label>
                </div>
+               )}
             </div>
 
             {/* Other Accordions */}
-            <div className="clay-card bg-white/60 rounded-md px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-white text-gray-500 hover:text-gray-800 transition-colors border border-gray-200/50">
+            <Link href="/practice?type=grammar" className={`clay-card rounded-md px-5 py-4 flex items-center justify-between cursor-pointer transition-colors border ${currentType === 'grammar' ? 'bg-white border-blue-200' : 'bg-white/60 hover:bg-white text-gray-500 border-transparent'}`}>
                <div className="flex items-center gap-3">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z" /></svg>
-                  <span className="font-bold">Listening</span>
+                  <span className={`font-bold ${currentType === 'grammar' ? 'text-gray-800' : ''}`}>Grammar / Listening</span>
                </div>
                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
-            </div>
-            <div className="clay-card bg-white/60 rounded-md px-5 py-4 flex items-center justify-between cursor-pointer hover:bg-white text-gray-500 hover:text-gray-800 transition-colors border border-gray-200/50">
+            </Link>
+            
+            <Link href="/practice?type=ielts_task2" className={`clay-card rounded-md px-5 py-4 flex items-center justify-between cursor-pointer transition-colors border ${currentType === 'ielts_task2' ? 'bg-white border-blue-200' : 'bg-white/60 hover:bg-white text-gray-500 border-transparent'}`}>
                <div className="flex items-center gap-3">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" /></svg>
-                  <span className="font-bold">Writing</span>
+                  <span className={`font-bold ${currentType === 'ielts_task2' ? 'text-gray-800' : ''}`}>Writing</span>
                </div>
                <svg className="w-4 h-4" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7"/></svg>
-            </div>
+            </Link>
             <div className="clay-card bg-white/60 rounded-md px-5 py-4 flex items-center justify-between opacity-50 cursor-not-allowed border border-gray-200/50">
                <div className="flex items-center gap-3">
                   <svg className="w-5 h-5" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z"/></svg>
@@ -149,7 +155,7 @@ export default async function PracticePage() {
          {/* Right Content Area */}
          <div className="flex-1 flex flex-col gap-4">
             <h3 className="font-black text-gray-800 flex items-baseline gap-2">
-               <span className="text-2xl">567</span> <span className="text-sm font-bold text-gray-400">bài đọc khớp bộ lọc</span>
+               <span className="text-2xl">{lessons.length}</span> <span className="text-sm font-bold text-gray-400">bài học khớp bộ lọc ({currentType})</span>
             </h3>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6 mt-2">

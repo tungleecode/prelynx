@@ -1,10 +1,11 @@
 export const runtime = "edge";
 
 import { db } from '@/lib/db'
-import { lessons } from '@/lib/db/schema'
-import { eq, lt, gt, desc, asc } from 'drizzle-orm'
+import { lessons, users, userProgresses } from '@/lib/db/schema'
+import { eq, lt, gt, desc, asc, and } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
+import { auth } from '@/auth'
 import EssayEditor from './EssayEditor'
 import TranslationEditor from './TranslationEditor'
 import QuizEditor from './QuizEditor'
@@ -43,6 +44,22 @@ export default async function LessonDetail({ params }: { params: Promise<{ id: s
   }
 
   const d = lesson.data as any;
+
+  const session = await auth();
+  let initialCompleted = false;
+  let initialFavorite = false;
+  if (session?.user?.email) {
+    const user = await db.query.users.findFirst({ where: eq(users.email, session.user.email) });
+    if (user) {
+      const progress = await db.query.userProgresses.findFirst({
+        where: and(eq(userProgresses.userId, user.id), eq(userProgresses.lessonId, lesson.id))
+      });
+      if (progress) {
+        initialCompleted = progress.completed;
+        initialFavorite = progress.isFav;
+      }
+    }
+  }
 
   return (
     <div className="min-h-screen p-4 md:p-8 flex flex-col items-center gap-8 w-full pb-32">
@@ -185,7 +202,7 @@ export default async function LessonDetail({ params }: { params: Promise<{ id: s
 
           {/* Questions */}
           {((d.questions && d.questions.length > 0) || lesson.type === 'grammar') && (
-             <QuizEditor questions={lesson.type === 'grammar' ? [{
+             <QuizEditor lessonId={lesson.id} questions={lesson.type === 'grammar' ? [{
                  prompt: d.stem,
                  options: d.options,
                  answerIndex: d.answerIndex,
@@ -197,7 +214,7 @@ export default async function LessonDetail({ params }: { params: Promise<{ id: s
       </div>
       
       {/* Floating Action */}
-      <FloatingActions lessonId={lesson.id} />
+      <FloatingActions lessonId={lesson.id} initialCompleted={initialCompleted} initialFavorite={initialFavorite} />
 
     </div>
   )

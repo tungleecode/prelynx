@@ -105,6 +105,35 @@ export async function POST(req: Request) {
       saved = { dueDate };
     }
 
+    // Calculate new streak
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    let newStreak = user.streak || 0;
+    
+    if (user.lastStudyDate) {
+      const lastStudy = new Date(user.lastStudyDate);
+      const lastStudyDay = new Date(lastStudy.getFullYear(), lastStudy.getMonth(), lastStudy.getDate());
+      const diffTime = Math.abs(today.getTime() - lastStudyDay.getTime());
+      const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+      if (diffDays === 1) {
+        newStreak += 1;
+      } else if (diffDays > 1) {
+        newStreak = 1;
+      }
+    } else {
+      newStreak = 1;
+    }
+
+    // Reward 1 Gem for every word reviewed, and update streak
+    await db.update(users)
+      .set({ 
+        gems: (user.gems || 0) + 1,
+        streak: newStreak,
+        lastStudyDate: now
+      })
+      .where(eq(users.id, user.id));
+
     return NextResponse.json({ success: true, nextDueDate: saved.dueDate });
   } catch (error) {
     console.error('Error processing SM2 review:', error);

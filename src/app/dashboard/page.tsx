@@ -37,7 +37,13 @@ export default async function DashboardPage() {
   const progressToday = progressResult[0].value;
   const dueFlashcards = dueResult[0].value;
 
-  const minutesToday = progressToday * 15
+  const minutesToday = progressToday * 15;
+
+  // AI Personalized Daily Plan Mockup
+  const recommendedLessons = await db.query.lessons.findMany({
+    where: eq(lessons.type, 'reading'),
+    limit: 2,
+  });
 
   return (
     <div className="min-h-screen p-4 md:p-8 flex flex-col items-center gap-8 w-full pb-20">
@@ -113,7 +119,6 @@ export default async function DashboardPage() {
         {/* Main Dashboard Cards */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
            
-           {/* Roadmap Card */}
            <div className="clay-card p-6 rounded-3xl flex flex-col gap-4">
               <div className="flex items-center gap-4">
                  <div className="w-12 h-12 rounded-2xl bg-orange-100 text-orange-600 flex items-center justify-center text-2xl">📅</div>
@@ -128,6 +133,31 @@ export default async function DashboardPage() {
                     </p>
                  </div>
               </div>
+              
+              {user.targetBand && (
+                <div className="mt-2 bg-gray-50 p-4 rounded-2xl border border-gray-100">
+                   <h4 className="font-bold text-gray-700 text-sm mb-3">AI Gợi ý bài học hôm nay:</h4>
+                   <div className="flex flex-col gap-3">
+                      {recommendedLessons.map(lesson => (
+                        <Link key={lesson.id} href={`/study/${lesson.id}`} className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                          <div className="flex items-center gap-3">
+                             <div className="w-8 h-8 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center text-xs font-black">R</div>
+                             <span className="font-bold text-gray-800 text-sm line-clamp-1">{(lesson.data as any)?.title || 'Bài tập Reading'}</span>
+                          </div>
+                          <span className="text-xs font-bold text-gray-400">15p</span>
+                        </Link>
+                      ))}
+                      <Link href="/vocabulary" className="flex items-center justify-between p-3 bg-white rounded-xl shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex items-center gap-3">
+                           <div className="w-8 h-8 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xs font-black">V</div>
+                           <span className="font-bold text-gray-800 text-sm line-clamp-1">Ôn {dueFlashcards} từ vựng tới hạn</span>
+                        </div>
+                        <span className="text-xs font-bold text-gray-400">5p</span>
+                      </Link>
+                   </div>
+                </div>
+              )}
+
               <div className="mt-4 flex justify-end">
                  <Link href="/plan" className="clay-card px-6 py-2 rounded-xl font-bold bg-white text-gray-800 hover:bg-gray-50">
                     {user.targetBand ? 'Sửa lộ trình \u2192' : 'Lập lộ trình \u2192'}

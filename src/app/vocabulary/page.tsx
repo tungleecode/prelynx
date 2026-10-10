@@ -57,7 +57,6 @@ export default async function VocabularyPage({ searchParams }: { searchParams: P
     }
   }
 
-  // Deduplicate vocab by word
   const uniqueVocab = [];
   const seen = new Set();
   for (const v of allVocab) {
@@ -68,6 +67,23 @@ export default async function VocabularyPage({ searchParams }: { searchParams: P
     }
   }
   allVocab = uniqueVocab;
+
+  // Compute garden data
+  const gardenStages = [0, 0, 0, 0]; // 0: hạt giống (seed), 1: mầm non, 2: cây con, 3: cây trưởng thành
+  if (session && session.user) {
+    const user = await db.query.users.findFirst({ where: eq(users.email, session.user.email!) });
+    if (user) {
+      const reviews = await db.query.flashcardReviews.findMany({
+        where: eq(flashcardReviews.userId, user.id)
+      });
+      for (const r of reviews) {
+        if (r.repetition === 0) gardenStages[0]++;
+        else if (r.repetition <= 2) gardenStages[1]++;
+        else if (r.repetition <= 5) gardenStages[2]++;
+        else gardenStages[3]++;
+      }
+    }
+  }
 
   return (
     <div className="min-h-[calc(100vh-80px)] bg-[#fdfaf6] w-full animate-in fade-in slide-in-from-bottom-4 flex">
@@ -190,14 +206,42 @@ export default async function VocabularyPage({ searchParams }: { searchParams: P
 
          {tab === 'garden' && (
            <div className="w-full h-full flex flex-col items-center justify-center text-center animate-in fade-in bg-green-50/50 rounded-md border border-green-100 p-8">
-              <div className="flex gap-4 mb-8">
-                 <div className="text-6xl animate-bounce" style={{ animationDelay: '0s' }}>🌱</div>
-                 <div className="text-6xl animate-bounce" style={{ animationDelay: '0.2s' }}>🌿</div>
-                 <div className="text-6xl animate-bounce" style={{ animationDelay: '0.4s' }}>🌳</div>
+              <div className="flex flex-wrap justify-center gap-6 mb-12 min-h-24">
+                 {/* Hạt giống */}
+                 <div className="flex flex-col items-center">
+                    <div className="text-5xl animate-pulse" style={{ animationDelay: '0s' }}>🌱</div>
+                    <span className="font-black text-green-800 mt-2 text-xl">{gardenStages[0]}</span>
+                    <span className="text-xs font-bold text-gray-500 uppercase">Hạt giống</span>
+                 </div>
+                 {/* Mầm non */}
+                 <div className="flex flex-col items-center">
+                    <div className="text-5xl animate-bounce" style={{ animationDelay: '0.2s' }}>🌿</div>
+                    <span className="font-black text-green-800 mt-2 text-xl">{gardenStages[1]}</span>
+                    <span className="text-xs font-bold text-gray-500 uppercase">Mầm non</span>
+                 </div>
+                 {/* Cây con */}
+                 <div className="flex flex-col items-center">
+                    <div className="text-5xl animate-bounce" style={{ animationDelay: '0.4s' }}>🌳</div>
+                    <span className="font-black text-green-800 mt-2 text-xl">{gardenStages[2]}</span>
+                    <span className="text-xs font-bold text-gray-500 uppercase">Cây con</span>
+                 </div>
+                 {/* Cây trưởng thành */}
+                 <div className="flex flex-col items-center">
+                    <div className="text-5xl hover-jiggle">🌺</div>
+                    <span className="font-black text-green-800 mt-2 text-xl">{gardenStages[3]}</span>
+                    <span className="text-xs font-bold text-gray-500 uppercase">Cây to</span>
+                 </div>
               </div>
               <h2 className="text-3xl font-black text-green-800 mb-4">Vườn từ của bạn</h2>
-              <p className="text-green-700 font-medium max-w-lg mb-8 text-lg">Mỗi từ vựng bạn học thuộc sẽ biến thành một cái cây. Ôn tập đúng hạn để cây lớn lên, nếu bỏ quên cây sẽ héo úa!</p>
-              <button className="bg-green-600 text-white font-black px-8 py-4 rounded-md shadow-lg hover:bg-green-700 transition-colors text-lg">Gieo hạt mầm đầu tiên</button>
+              <p className="text-green-700 font-medium max-w-lg mb-8 text-lg">Mỗi từ vựng bạn học thuộc sẽ lớn lên từng ngày qua các kỳ ôn tập (Spaced Repetition). Ôn tập đúng hạn để cây lớn lên nhé!</p>
+              
+              {gardenStages.reduce((a, b) => a + b, 0) === 0 ? (
+                 <Link href="/vocabulary?tab=sotu" className="bg-green-600 text-white font-black px-8 py-4 rounded-md shadow-lg hover:bg-green-700 transition-colors text-lg">Gieo hạt mầm đầu tiên</Link>
+              ) : (
+                 <div className="clay-card px-6 py-3 bg-white border-green-200">
+                    <span className="font-black text-gray-800">Tổng cộng {gardenStages.reduce((a, b) => a + b, 0)} cây trong vườn</span>
+                 </div>
+              )}
            </div>
          )}
 

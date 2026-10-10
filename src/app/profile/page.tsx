@@ -30,6 +30,17 @@ export default async function ProfilePage() {
         with: {
           lesson: { columns: { id: true, type: true, data: true } }
         }
+      },
+      progress: {
+        where: (progress, { eq }) => eq(progress.completed, true),
+        orderBy: (progress, { desc }) => [desc(progress.lastSeen)],
+        limit: 10,
+        columns: {
+          id: true, score: true, lastSeen: true, lessonId: true
+        },
+        with: {
+          lesson: { columns: { id: true, type: true, data: true } }
+        }
       }
     }
   });
@@ -52,9 +63,19 @@ export default async function ProfilePage() {
                <p className="font-bold text-gray-500">{user.email}</p>
             </div>
          </div>
-         <div className="clay-card px-6 py-4 rounded-2xl bg-white text-center">
-            <div className="text-3xl font-black text-orange-500">{user.currentBand ? user.currentBand.toFixed(1) : '?'}</div>
-            <div className="text-xs font-bold uppercase text-gray-400 mt-1">Band Hiện Tại</div>
+         <div className="flex gap-4">
+            <div className="clay-card px-6 py-4 rounded-2xl bg-white text-center">
+               <div className="text-3xl font-black text-orange-500">🔥 {user.streak || 0}</div>
+               <div className="text-xs font-bold uppercase text-gray-400 mt-1">Chuỗi ngày</div>
+            </div>
+            <div className="clay-card px-6 py-4 rounded-2xl bg-white text-center">
+               <div className="text-3xl font-black text-blue-500">💎 {user.gems || 0}</div>
+               <div className="text-xs font-bold uppercase text-gray-400 mt-1">Gems</div>
+            </div>
+            <div className="clay-card px-6 py-4 rounded-2xl bg-white text-center hidden md:block">
+               <div className="text-3xl font-black text-purple-500">{user.currentBand ? user.currentBand.toFixed(1) : '?'}</div>
+               <div className="text-xs font-bold uppercase text-gray-400 mt-1">Band Hiện Tại</div>
+            </div>
          </div>
       </div>
 
@@ -126,6 +147,49 @@ export default async function ProfilePage() {
                             Tuyệt vời! AI không phát hiện lỗi ngữ pháp hay từ vựng cơ bản nào trong bài này.
                          </div>
                       )}
+                   </div>
+                 )
+               })}
+            </div>
+         )}
+      </div>
+
+      <div className="w-full mt-12">
+         <h2 className="text-3xl font-black text-gray-800 mb-6 flex items-center gap-3">
+           <span className="w-10 h-10 rounded-full bg-green-100 text-green-600 flex items-center justify-center text-xl">✅</span>
+           Bài học đã hoàn thành
+         </h2>
+
+         {user.progress.length === 0 ? (
+            <div className="clay-card p-12 text-center rounded-3xl bg-[var(--color-bg-cream)] opacity-80">
+               <h3 className="text-2xl font-black text-gray-600 mb-2">Chưa có bài học nào</h3>
+               <p className="font-medium text-gray-500 mb-6">Bạn chưa hoàn thành bài học nào. Hãy bắt đầu học ngay nhé!</p>
+               <Link href="/study" className="clay-btn bg-[var(--color-maroon)] text-white px-8 py-3 rounded-xl font-bold">Đi tới thư viện</Link>
+            </div>
+         ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+               {user.progress.map((p) => {
+                 const d = (p.lesson?.data as any) || {};
+                 return (
+                   <div key={p.id} className="clay-card rounded-2xl p-6 bg-white flex flex-col gap-4">
+                      <div className="flex justify-between items-start">
+                         <div>
+                            <span className="clay-btn px-2 py-1 rounded text-xs font-black uppercase text-[var(--color-maroon)] mb-2 inline-block">
+                              {p.lesson?.type.replace('_', ' ') || 'Bài học'}
+                            </span>
+                            <Link href={`/study/${p.lessonId}`} className="block text-xl font-black text-gray-800 hover:text-[var(--color-maroon)] leading-tight">
+                              {d.title || d.titleEn || d.titleVi || "Bài học không tên"}
+                            </Link>
+                         </div>
+                         {p.score !== null && (
+                           <div className="w-12 h-12 rounded-full clay-card bg-amber-50 text-amber-600 flex items-center justify-center font-black text-lg shrink-0">
+                             {p.score}
+                           </div>
+                         )}
+                      </div>
+                      <div className="text-sm font-bold text-gray-400 mt-auto">
+                        Đã hoàn thành lúc: {new Date(p.lastSeen).toLocaleDateString('vi-VN')}
+                      </div>
                    </div>
                  )
                })}

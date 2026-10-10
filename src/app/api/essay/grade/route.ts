@@ -76,12 +76,40 @@ export async function POST(req: Request) {
         submittedAt: new Date()
       });
       
-      // Cập nhật currentBand của User nếu điểm này cao hơn
-      if (!user.currentBand || finalScore > user.currentBand) {
-        await db.update(users)
-          .set({ currentBand: finalScore })
-          .where(eq(users.id, user.id));
+      // Calculate new streak
+      const now = new Date();
+      const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      let newStreak = user.streak || 0;
+      
+      if (user.lastStudyDate) {
+        const lastStudy = new Date(user.lastStudyDate);
+        const lastStudyDay = new Date(lastStudy.getFullYear(), lastStudy.getMonth(), lastStudy.getDate());
+        const diffTime = Math.abs(today.getTime() - lastStudyDay.getTime());
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+
+        if (diffDays === 1) {
+          newStreak += 1;
+        } else if (diffDays > 1) {
+          newStreak = 1;
+        }
+      } else {
+        newStreak = 1;
       }
+
+      // Cập nhật currentBand của User nếu điểm này cao hơn, cộng Gem và Streak
+      const updateData: any = { 
+        gems: (user.gems || 0) + 15, // Viết bài khó nên thưởng 15 Gems
+        streak: newStreak,
+        lastStudyDate: now
+      };
+      
+      if (!user.currentBand || finalScore > user.currentBand) {
+        updateData.currentBand = finalScore;
+      }
+      
+      await db.update(users)
+        .set(updateData)
+        .where(eq(users.id, user.id));
     }
 
     return NextResponse.json({ success: true, feedback });

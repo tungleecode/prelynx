@@ -1,7 +1,8 @@
 "use client"
-import { useState } from 'react'
+import { useState, useTransition } from 'react'
+import { saveMockTestResult } from '@/app/actions'
 
-export default function QuizEditor({ questions }: { questions: any[] }) {
+export default function QuizEditor({ questions, lessonId }: { questions: any[], lessonId?: string }) {
   const [answers, setAnswers] = useState<{[key: number]: number}>({})
   const [isSubmitted, setIsSubmitted] = useState(false)
   const [showConfirm, setShowConfirm] = useState(false)
@@ -14,6 +15,15 @@ export default function QuizEditor({ questions }: { questions: any[] }) {
   const processSubmit = () => {
     setIsSubmitted(true)
     setShowConfirm(false)
+    if (lessonId) {
+      let correctCount = 0;
+      questions.forEach((q, i) => {
+        const correctIdx = q.answerIndex !== undefined ? q.answerIndex : -1;
+        if (answers[i] === correctIdx) correctCount++;
+      });
+      const stringAnswers = Object.fromEntries(Object.entries(answers).map(([k,v]) => [k, String(v)]));
+      saveMockTestResult(lessonId, correctCount, stringAnswers).catch(console.error);
+    }
   }
 
   const handleSubmit = () => {
@@ -70,18 +80,18 @@ export default function QuizEditor({ questions }: { questions: any[] }) {
                       
                       if (!isSubmitted) {
                          if (selectedIdx === j) {
-                            btnClass += " bg-[var(--color-maroon)] text-white"
+                            btnClass += " !bg-[var(--color-maroon)] !text-white"
                          } else {
-                            btnClass += " hover:bg-gray-50 text-gray-700"
+                            btnClass += " hover:bg-gray-50 !text-gray-700"
                          }
                       } else {
                          // Submitted state
                          if (j === correctIdx) {
-                            btnClass += " bg-green-500 text-white shadow-[inset_0_-4px_0_rgba(0,0,0,0.2)]" // Correct answer
+                            btnClass += " !bg-green-500 !text-white shadow-[inset_0_-4px_0_rgba(0,0,0,0.2)]" // Correct answer
                          } else if (j === selectedIdx && !isCorrect) {
-                            btnClass += " bg-red-500 text-white shadow-[inset_0_-4px_0_rgba(0,0,0,0.2)]" // Wrong choice
+                            btnClass += " !bg-red-500 !text-white shadow-[inset_0_-4px_0_rgba(0,0,0,0.2)]" // Wrong choice
                          } else {
-                            btnClass += " opacity-50 bg-gray-100 text-gray-500" // Not chosen and wrong
+                            btnClass += " opacity-50 !bg-gray-100 !text-gray-500" // Not chosen and wrong
                          }
                       }
 

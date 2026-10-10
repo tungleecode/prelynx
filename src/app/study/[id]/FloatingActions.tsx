@@ -1,35 +1,28 @@
 "use client"
 import { useState, useEffect } from 'react'
+import { toggleLessonProgressAction } from '@/app/actions'
 
-export default function FloatingActions({ lessonId }: { lessonId: string }) {
-  const [isFavorite, setIsFavorite] = useState(false)
-  const [isCompleted, setIsCompleted] = useState(false)
+export default function FloatingActions({ lessonId, initialCompleted = false, initialFavorite = false }: { lessonId: string, initialCompleted?: boolean, initialFavorite?: boolean }) {
+  const [isFavorite, setIsFavorite] = useState(initialFavorite)
+  const [isCompleted, setIsCompleted] = useState(initialCompleted)
   const [showToast, setShowToast] = useState('')
 
-  useEffect(() => {
-    // Load state from localStorage
-    const favs = JSON.parse(localStorage.getItem('favs') || '{}')
-    const comps = JSON.parse(localStorage.getItem('comps') || '{}')
-    if (favs[lessonId]) setIsFavorite(true)
-    if (comps[lessonId]) setIsCompleted(true)
-  }, [lessonId])
-
-  const toggleFavorite = () => {
+  const toggleFavorite = async () => {
     const newState = !isFavorite;
     setIsFavorite(newState)
-    const favs = JSON.parse(localStorage.getItem('favs') || '{}')
-    favs[lessonId] = newState;
-    localStorage.setItem('favs', JSON.stringify(favs))
+    
+    // Sync with DB
+    await toggleLessonProgressAction(lessonId, { isFav: newState }).catch(console.error);
     
     showToastMsg(newState ? 'Đã thêm vào danh sách yêu thích ❤️' : 'Đã bỏ yêu thích 💔')
   }
 
-  const toggleCompleted = () => {
+  const toggleCompleted = async () => {
     const newState = !isCompleted;
     setIsCompleted(newState)
-    const comps = JSON.parse(localStorage.getItem('comps') || '{}')
-    comps[lessonId] = newState;
-    localStorage.setItem('comps', JSON.stringify(comps))
+    
+    // Sync with DB
+    await toggleLessonProgressAction(lessonId, { completed: newState }).catch(console.error);
     
     showToastMsg(newState ? 'Chúc mừng bạn đã hoàn thành bài học! 🎉' : 'Đã huỷ trạng thái hoàn thành')
   }
