@@ -3,13 +3,9 @@ import { connect } from '@tidbcloud/serverless'
 import { PrismaTiDBCloud } from '@tidbcloud/prisma-adapter'
 
 const prismaClientSingleton = () => {
-  // Use connection string from env
-  const connectionString = process.env.DATABASE_URL
+  // Use connection string from env or a dummy string to prevent build crash on Edge
+  const connectionString = process.env.DATABASE_URL || "mysql://dummy:dummy@dummy:4000/test"
   
-  if (!connectionString) {
-    return new PrismaClient()
-  }
-
   // Initialize TiDB connection over HTTP
   const connection = connect({ url: connectionString })
   const adapter = new PrismaTiDBCloud(connection)
