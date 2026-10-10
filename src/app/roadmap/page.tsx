@@ -2,10 +2,20 @@ export const runtime = "edge";
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
 
+import { unstable_cache } from "next/cache";
+
+const getRoadmapPhases = unstable_cache(
+  async () => {
+    return await prisma.lesson.findMany({
+      where: { type: 'study_week' }
+    });
+  },
+  ['roadmap-phases'],
+  { revalidate: 3600 } // Cache for 1 hour
+);
+
 export default async function RoadmapPage() {
-  const roadmapPhases = await prisma.lesson.findMany({
-    where: { type: 'study_week' }
-  });
+  const roadmapPhases = await getRoadmapPhases();
 
   // Sort phases by fromWeek
   const phases = roadmapPhases

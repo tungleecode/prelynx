@@ -54,6 +54,46 @@ const getMinutes = (d: any, type: string) => {
   return '--';
 }
 
+import { unstable_cache } from "next/cache";
+
+const getLessons = unstable_cache(
+  async (typeFilter: any, take: number, skip: number, q: string) => {
+    if (q) {
+      const allLessons = await prisma.lesson.findMany({
+        where: { type: typeFilter },
+        orderBy: { id: 'desc' }
+      });
+      const filtered = allLessons.filter(l => {
+        const d = l.data as any;
+        const textToSearch = `${d.title || ''} ${d.titleEn || ''} ${d.titleVi || ''} ${d.topic || ''} ${d.topicSlug || ''} ${d.passage || ''} ${d.en || ''}`.toLowerCase();
+        return textToSearch.includes(q.toLowerCase());
+      });
+      return {
+        lessons: filtered.slice(skip, skip + take),
+        totalLessons: filtered.length
+      };
+    } else {
+      const results = await Promise.all([
+        prisma.lesson.findMany({
+          where: { type: typeFilter },
+          take,
+          skip,
+          orderBy: { id: 'desc' }
+        }),
+        prisma.lesson.count({
+          where: { type: typeFilter }
+        })
+      ]);
+      return {
+        lessons: results[0],
+        totalLessons: results[1]
+      };
+    }
+  },
+  ['study-lessons-query'],
+  { revalidate: 300 } // Cache for 5 mins
+);
+
 export default async function StudyRoom({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
   const resolvedParams = await searchParams;
   const pageStr = Array.isArray(resolvedParams.page) ? resolvedParams.page[0] : resolvedParams.page;
@@ -72,36 +112,7 @@ export default async function StudyRoom({ searchParams }: { searchParams: Promis
   if (cat === 'ielts_reading' || cat === 'article') typeFilter = 'article';
   if (cat === 'sat' || cat === 'grammar') typeFilter = { in: ['grammar', 'reading'] };
 
-  let lessons = [];
-  let totalLessons = 0;
-
-  if (q) {
-    const allLessons = await prisma.lesson.findMany({
-      where: { type: typeFilter },
-      orderBy: { id: 'desc' }
-    });
-    const filtered = allLessons.filter(l => {
-      const d = l.data as any;
-      const textToSearch = `${d.title || ''} ${d.titleEn || ''} ${d.titleVi || ''} ${d.topic || ''} ${d.topicSlug || ''} ${d.passage || ''} ${d.en || ''}`.toLowerCase();
-      return textToSearch.includes(q.toLowerCase());
-    });
-    totalLessons = filtered.length;
-    lessons = filtered.slice(skip, skip + take);
-  } else {
-    const results = await Promise.all([
-      prisma.lesson.findMany({
-        where: { type: typeFilter },
-        take,
-        skip,
-        orderBy: { id: 'desc' }
-      }),
-      prisma.lesson.count({
-        where: { type: typeFilter }
-      })
-    ]);
-    lessons = results[0];
-    totalLessons = results[1];
-  }
+  const { lessons, totalLessons } = await getLessons(typeFilter, take, skip, q);
   
   const hasNextPage = skip + take < totalLessons;
   const hasPrevPage = page > 1;
