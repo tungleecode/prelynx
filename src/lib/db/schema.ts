@@ -12,7 +12,7 @@ import {
 } from "drizzle-orm/mysql-core";
 
 export const users = mysqlTable("User", {
-  id: varchar("id", { length: 255 }).primaryKey().notNull(),
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   name: varchar("name", { length: 255 }),
   email: varchar("email", { length: 255 }),
   emailVerified: datetime("emailVerified", { mode: "date", fsp: 3 }),
@@ -31,7 +31,7 @@ export const users = mysqlTable("User", {
 }));
 
 export const accounts = mysqlTable("Account", {
-  id: varchar("id", { length: 255 }).primaryKey().notNull(),
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: varchar("userId", { length: 255 }).notNull(),
   type: varchar("type", { length: 255 }).notNull(),
   provider: varchar("provider", { length: 255 }).notNull(),
@@ -48,7 +48,7 @@ export const accounts = mysqlTable("Account", {
 }));
 
 export const sessions = mysqlTable("Session", {
-  id: varchar("id", { length: 255 }).primaryKey().notNull(),
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   sessionToken: varchar("sessionToken", { length: 255 }).notNull(),
   userId: varchar("userId", { length: 255 }).notNull(),
   expires: datetime("expires", { mode: "date", fsp: 3 }).notNull(),
@@ -66,7 +66,7 @@ export const verificationTokens = mysqlTable("VerificationToken", {
 }));
 
 export const lessons = mysqlTable("Lesson", {
-  id: varchar("id", { length: 255 }).primaryKey().notNull(),
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   type: varchar("type", { length: 255 }).notNull(),
   data: json("data").notNull(),
   createdAt: datetime("createdAt", { mode: "date", fsp: 3 }).notNull(),
@@ -74,7 +74,7 @@ export const lessons = mysqlTable("Lesson", {
 });
 
 export const userProgresses = mysqlTable("UserProgress", {
-  id: varchar("id", { length: 255 }).primaryKey().notNull(),
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: varchar("userId", { length: 255 }).notNull(),
   lessonId: varchar("lessonId", { length: 255 }).notNull(),
   completed: boolean("completed").default(false).notNull(),
@@ -87,7 +87,7 @@ export const userProgresses = mysqlTable("UserProgress", {
 }));
 
 export const essaySubmissions = mysqlTable("EssaySubmission", {
-  id: varchar("id", { length: 255 }).primaryKey().notNull(),
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: varchar("userId", { length: 255 }).notNull(),
   lessonId: varchar("lessonId", { length: 255 }).notNull(),
   content: text("content").notNull(),
@@ -98,7 +98,7 @@ export const essaySubmissions = mysqlTable("EssaySubmission", {
 });
 
 export const flashcardReviews = mysqlTable("FlashcardReview", {
-  id: varchar("id", { length: 255 }).primaryKey().notNull(),
+  id: varchar("id", { length: 255 }).primaryKey().$defaultFn(() => crypto.randomUUID()),
   userId: varchar("userId", { length: 255 }).notNull(),
   word: varchar("word", { length: 255 }).notNull(),
   interval: int("interval").default(0).notNull(),
