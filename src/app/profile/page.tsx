@@ -20,7 +20,8 @@ export default async function ProfilePage() {
         orderBy: { submittedAt: 'desc' },
         take: 10,
         select: {
-          id: true, band: true, submittedAt: true,
+          id: true, score: true, submittedAt: true,
+          lessonId: true, wordCount: true, content: true, feedback: true,
           lesson: { select: { id: true, type: true, data: true } }
         }
       }
