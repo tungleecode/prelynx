@@ -1,31 +1,12 @@
 export const runtime = "edge";
 import prisma from '@/lib/prisma';
 import MockTestRoom from './MockTestRoom';
-import { redirect } from 'next/navigation';
-
-import { unstable_cache } from "next/cache";
-
-const getMockLesson = unstable_cache(
-  async (id?: string) => {
-    if (id) {
-      return await prisma.lesson.findUnique({
-        where: { id }
-      });
-    } else {
-      return await prisma.lesson.findFirst({
-        where: {
-          type: { in: ['reading', 'press'] }
-        }
-      });
-    }
-  },
-  ['mock-lesson'],
-  { revalidate: 3600 } // Cache for 1 hour
-);
 
 export default async function MockTestPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   const resolvedParams = await searchParams;
-  const lesson = await getMockLesson(resolvedParams.id);
+  const lesson = resolvedParams.id
+    ? await prisma.lesson.findUnique({ where: { id: resolvedParams.id } })
+    : await prisma.lesson.findFirst({ where: { type: { in: ['reading', 'press'] } } });
 
   if (!lesson) {
     return (

@@ -1,4 +1,5 @@
 export const runtime = "edge";
+
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
@@ -12,32 +13,28 @@ import BilingualReader from './BilingualReader'
 import VocabSection from './VocabSection'
 import AudioPlayer from './AudioPlayer'
 import ArticleReader from './ArticleReader'
-import { unstable_cache } from 'next/cache'
-
-const getLessonById = unstable_cache(
-  async (id: string) => {
-    const [lesson, prevLesson, nextLesson] = await Promise.all([
-      prisma.lesson.findUnique({ where: { id } }),
-      prisma.lesson.findFirst({
-        where: { id: { lt: id } },
-        orderBy: { id: 'desc' },
-        select: { id: true, type: true }
-      }),
-      prisma.lesson.findFirst({
-        where: { id: { gt: id } },
-        orderBy: { id: 'asc' },
-        select: { id: true, type: true }
-      })
-    ]);
-    return { lesson, prevLesson, nextLesson };
-  },
-  ['lesson-detail'],
-  { revalidate: 86400 } // Cache 24 hours - content doesn't change
-);
 
 export default async function LessonDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
-  const { lesson, prevLesson, nextLesson } = await getLessonById(resolvedParams.id);
+  const lesson = await prisma.lesson.findUnique({
+    where: { id: resolvedParams.id }
+  });
+
+  if (!lesson) {
+    notFound();
+  }
+
+  // Find next/prev lessons (Quick win for navigation)
+  const [prevLesson, nextLesson] = await Promise.all([
+    prisma.lesson.findFirst({
+      where: { type: lesson.type, id: { lt: lesson.id } },
+      orderBy: { id: 'desc' }
+    }),
+    prisma.lesson.findFirst({
+      where: { type: lesson.type, id: { gt: lesson.id } },
+      orderBy: { id: 'asc' }
+    })
+  ]);
 
   if (!lesson) {
     notFound();

@@ -1,28 +1,20 @@
 export const runtime = "edge";
+export const revalidate = 600; // Cache 10 minutes
+
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
 import VocabDeck from './VocabDeck'
-
 import { auth } from "@/auth";
-
-import { unstable_cache } from "next/cache";
-
-const getArticles = unstable_cache(
-  async () => {
-    return await prisma.lesson.findMany({
-      where: { type: { in: ['reading', 'press'] } }
-    });
-  },
-  ['vocabulary-articles'],
-  { revalidate: 600 } // Cache for 10 minutes
-);
 
 export default async function VocabularyPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const resolvedParams = await searchParams;
   const tab = resolvedParams.tab || 'sotu';
   const session = await auth();
   
-  const articles = await getArticles();
+  const articles = await prisma.lesson.findMany({
+    where: { type: { in: ['reading', 'press'] } },
+    select: { id: true, type: true, data: true }
+  });
 
   // Extract all vocab
   let allVocab: any[] = [];
