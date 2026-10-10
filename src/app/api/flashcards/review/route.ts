@@ -2,7 +2,9 @@ export const runtime = "edge";
 import { auth } from "@/auth";
 import { NextResponse } from 'next/server';
 
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users, flashcardReviews } from '@/lib/db/schema';
+import { eq, and } from 'drizzle-orm';
 
 // SuperMemo-2 Algorithm
 function calculateSM2(quality: number, repetition: number, efactor: number, interval: number) {
@@ -47,12 +49,12 @@ export async function POST(req: Request) {
     }
 
     // Find user (we assume email is unique and exists from NextAuth)
-    const user = await prisma.user.findUnique({ where: { email: session.user.email! } });
+    const user = await db.query.users.findFirst({ where: eq(users.email, session.user.email!) });
     if (!user) return NextResponse.json({ error: 'User not found' }, { status: 404 });
 
     // Find existing review
-    let review = await prisma.flashcardReview.findFirst({
-      where: { userId: user.id, word: vocabId }
+    let review = await db.query.flashcardReviews.findFirst({
+      where: and(eq(flashcardReviews.userId, user.id), eq(flashcardReviews.word, vocabId))
     });
 
     const isNew = !review;
@@ -80,26 +82,27 @@ export async function POST(req: Request) {
     // Upsert to DB
     let saved;
     if (isNew) {
-      saved = await prisma.flashcardReview.create({
-        data: {
-          userId: user.id,
-          word: vocabId,
-          interval: sm2.interval,
-          repetition: sm2.repetition,
-          efactor: sm2.efactor,
-          dueDate: dueDate
-        }
+      await db.insert(flashcardReviews).values({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        word: vocabId,
+        interval: sm2.interval,
+        repetition: sm2.repetition,
+        efactor: sm2.efactor,
+        dueDate: dueDate,
+        createdAt: new Date(),
+        updatedAt: new Date()
       });
+      saved = { dueDate };
     } else {
-      saved = await prisma.flashcardReview.update({
-        where: { id: review.id },
-        data: {
-          interval: sm2.interval,
-          repetition: sm2.repetition,
-          efactor: sm2.efactor,
-          dueDate: dueDate
-        }
-      });
+      await db.update(flashcardReviews).set({
+        interval: sm2.interval,
+        repetition: sm2.repetition,
+        efactor: sm2.efactor,
+        dueDate: dueDate,
+        updatedAt: new Date()
+      }).where(eq(flashcardReviews.id, review.id));
+      saved = { dueDate };
     }
 
     return NextResponse.json({ success: true, nextDueDate: saved.dueDate });

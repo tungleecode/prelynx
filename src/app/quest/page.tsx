@@ -1,7 +1,8 @@
 export const runtime = "edge";
 import Link from 'next/link';
-import prisma from '@/lib/prisma';
-
+import { db } from '@/lib/db';
+import { users, userProgresses } from '@/lib/db/schema';
+import { eq, and, count } from 'drizzle-orm';
 import { auth } from "@/auth";
 import { redirect } from 'next/navigation';
 
@@ -11,19 +12,20 @@ export default async function QuestPage() {
     redirect('/login');
   }
 
-  const [user, completedCount] = await Promise.all([
-    prisma.user.findUnique({
-      where: { email: session.user.email! },
-      select: { id: true, name: true, streak: true, gems: true, dailyGoal: true }
-    }),
-    prisma.userProgress.count({
-      where: { user: { email: session.user.email! }, completed: true }
-    })
-  ])
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, session.user.email!),
+    columns: { id: true, name: true, streak: true, gems: true, dailyGoal: true }
+  });
 
   if (!user) {
     redirect('/login');
   }
+
+  const completedCountResult = await db.select({ value: count() })
+    .from(userProgresses)
+    .where(and(eq(userProgresses.userId, user.id), eq(userProgresses.completed, true)));
+  
+  const completedCount = completedCountResult[0].value;
 
   return (
     <div className="min-h-screen bg-[#fdfaf6] w-full pb-32 animate-in fade-in slide-in-from-bottom-4">

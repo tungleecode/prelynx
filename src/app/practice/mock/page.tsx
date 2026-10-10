@@ -1,12 +1,14 @@
 export const runtime = "edge";
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { lessons } from '@/lib/db/schema';
+import { eq, inArray } from 'drizzle-orm';
 import MockTestRoom from './MockTestRoom';
 
 export default async function MockTestPage({ searchParams }: { searchParams: Promise<{ id?: string }> }) {
   const resolvedParams = await searchParams;
   const lesson = resolvedParams.id
-    ? await prisma.lesson.findUnique({ where: { id: resolvedParams.id } })
-    : await prisma.lesson.findFirst({ where: { type: { in: ['reading', 'press'] } } });
+    ? await db.query.lessons.findFirst({ where: eq(lessons.id, resolvedParams.id) })
+    : await db.query.lessons.findFirst({ where: inArray(lessons.type, ['reading', 'press']) });
 
   if (!lesson) {
     return (

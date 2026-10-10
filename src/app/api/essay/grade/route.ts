@@ -2,7 +2,9 @@ export const runtime = "edge";
 import { auth } from "@/auth";
 import { NextResponse } from 'next/server';
 
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users, essaySubmissions } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function POST(req: Request) {
   try {
@@ -61,25 +63,24 @@ export async function POST(req: Request) {
     };
 
     // Save to DB
-    const user = await prisma.user.findUnique({ where: { email: session.user.email! } });
+    const user = await db.query.users.findFirst({ where: eq(users.email, session.user.email!) });
     if (user) {
-      await prisma.essaySubmission.create({
-        data: {
-          userId: user.id,
-          lessonId: lessonId || 'custom-writing',
-          content: content,
-          wordCount: wordCount,
-          score: finalScore,
-          feedback: feedback
-        }
+      await db.insert(essaySubmissions).values({
+        id: crypto.randomUUID(),
+        userId: user.id,
+        lessonId: lessonId || 'custom-writing',
+        content: content,
+        wordCount: wordCount,
+        score: finalScore,
+        feedback: feedback,
+        submittedAt: new Date()
       });
       
       // Cập nhật currentBand của User nếu điểm này cao hơn
       if (!user.currentBand || finalScore > user.currentBand) {
-        await prisma.user.update({
-          where: { id: user.id },
-          data: { currentBand: finalScore }
-        });
+        await db.update(users)
+          .set({ currentBand: finalScore })
+          .where(eq(users.id, user.id));
       }
     }
 

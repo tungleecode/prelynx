@@ -2,7 +2,9 @@ export const runtime = "edge";
 import { auth } from "@/auth";
 import { NextResponse } from 'next/server';
 
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users } from '@/lib/db/schema';
+import { eq } from 'drizzle-orm';
 
 export async function POST(req: Request) {
   try {
@@ -25,15 +27,9 @@ export async function POST(req: Request) {
     const examDate = new Date();
     examDate.setMonth(examDate.getMonth() + months);
 
-    await prisma.user.update({
-      where: { email: session.user.email! },
-      data: {
-        currentBand,
-        targetBand,
-        examDate,
-        dailyGoal
-      }
-    });
+    await db.update(users)
+      .set({ currentBand, targetBand, examDate, dailyGoal })
+      .where(eq(users.email, session.user.email!));
 
     return NextResponse.json({ success: true });
   } catch (error) {

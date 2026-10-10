@@ -1,12 +1,14 @@
 export const runtime = "edge";
 export const revalidate = 3600; // Cache page 1 hour
 
-import prisma from '@/lib/prisma'
+import { db } from '@/lib/db'
+import { lessons } from '@/lib/db/schema'
+import { eq } from 'drizzle-orm'
 import Link from 'next/link'
 
 export default async function RoadmapPage() {
-  const roadmapPhases = await prisma.lesson.findMany({
-    where: { type: 'study_week' }
+  const roadmapPhases = await db.query.lessons.findMany({
+    where: eq(lessons.type, 'study_week')
   });
 
   // Sort phases by fromWeek

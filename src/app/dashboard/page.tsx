@@ -2,7 +2,9 @@ export const runtime = "edge";
 
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
-import prisma from '@/lib/prisma'
+import { db } from '@/lib/db'
+import { users, userProgresses, flashcardReviews } from '@/lib/db/schema'
+import { eq, count, and, gte, lte } from 'drizzle-orm'
 import { auth } from "@/auth";
 
 export default async function DashboardPage() {
@@ -14,9 +16,9 @@ export default async function DashboardPage() {
   const startOfDay = new Date()
   startOfDay.setHours(0, 0, 0, 0)
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email! },
-    select: {
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, session.user.email!),
+    columns: {
       id: true, name: true, image: true, streak: true,
       gems: true, dailyGoal: true, currentBand: true,
       targetBand: true, examDate: true
@@ -24,15 +26,16 @@ export default async function DashboardPage() {
   })
   if (!user) redirect('/login')
 
-  // Run all stats queries in parallel (saves ~2x CPU time)
-  const [progressToday, dueFlashcards] = await Promise.all([
-    prisma.userProgress.count({
-      where: { userId: user.id, lastSeen: { gte: startOfDay } }
-    }),
-    prisma.flashcardReview.count({
-      where: { userId: user.id, dueDate: { lte: new Date() } }
-    })
+  // Run all stats queries in parallel
+  const [progressResult, dueResult] = await Promise.all([
+    db.select({ value: count() }).from(userProgresses)
+      .where(and(eq(userProgresses.userId, user.id), gte(userProgresses.lastSeen, startOfDay))),
+    db.select({ value: count() }).from(flashcardReviews)
+      .where(and(eq(flashcardReviews.userId, user.id), lte(flashcardReviews.dueDate, new Date())))
   ])
+  
+  const progressToday = progressResult[0].value;
+  const dueFlashcards = dueResult[0].value;
 
   const minutesToday = progressToday * 15
 

@@ -1,6 +1,8 @@
 export const runtime = "edge";
 
-import prisma from '@/lib/prisma'
+import { db } from '@/lib/db'
+import { lessons as lessonsSchema } from '@/lib/db/schema'
+import { eq, desc, inArray, count } from 'drizzle-orm'
 import StudyMenu from './StudyMenu'
 import ProLink from './ProLink'
 import Link from 'next/link'
@@ -77,9 +79,9 @@ export default async function StudyRoom({ searchParams }: { searchParams: Promis
   let totalLessons = 0;
 
   if (q) {
-    const allLessons = await prisma.lesson.findMany({
-      where: { type: typeFilter },
-      orderBy: { id: 'desc' }
+    const allLessons = await db.query.lessons.findMany({
+      where: typeFilter ? inArray(lessonsSchema.type, Array.isArray(typeFilter) ? typeFilter as any[] : [typeFilter as any]) : undefined,
+      orderBy: [desc(lessonsSchema.id)]
     });
     const filtered = allLessons.filter(l => {
       const d = l.data as any;
@@ -89,19 +91,18 @@ export default async function StudyRoom({ searchParams }: { searchParams: Promis
     totalLessons = filtered.length;
     lessons = filtered.slice(skip, skip + take);
   } else {
+    const whereCondition = typeFilter ? inArray(lessonsSchema.type, Array.isArray(typeFilter) ? typeFilter as any[] : [typeFilter as any]) : undefined;
     const results = await Promise.all([
-      prisma.lesson.findMany({
-        where: { type: typeFilter },
-        take,
-        skip,
-        orderBy: { id: 'desc' }
+      db.query.lessons.findMany({
+        where: whereCondition,
+        limit: take,
+        offset: skip,
+        orderBy: [desc(lessonsSchema.id)]
       }),
-      prisma.lesson.count({
-        where: { type: typeFilter }
-      })
+      db.select({ value: count() }).from(lessonsSchema).where(whereCondition)
     ]);
     lessons = results[0];
-    totalLessons = results[1];
+    totalLessons = results[1][0].value;
   }
   
   const hasNextPage = skip + take < totalLessons;

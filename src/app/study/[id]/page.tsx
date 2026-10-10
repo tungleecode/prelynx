@@ -1,6 +1,8 @@
 export const runtime = "edge";
 
-import prisma from '@/lib/prisma'
+import { db } from '@/lib/db'
+import { lessons } from '@/lib/db/schema'
+import { eq, lt, gt, desc, asc } from 'drizzle-orm'
 import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import EssayEditor from './EssayEditor'
@@ -16,8 +18,8 @@ import ArticleReader from './ArticleReader'
 
 export default async function LessonDetail({ params }: { params: Promise<{ id: string }> }) {
   const resolvedParams = await params;
-  const lesson = await prisma.lesson.findUnique({
-    where: { id: resolvedParams.id }
+  const lesson = await db.query.lessons.findFirst({
+    where: eq(lessons.id, resolvedParams.id)
   });
 
   if (!lesson) {
@@ -26,13 +28,13 @@ export default async function LessonDetail({ params }: { params: Promise<{ id: s
 
   // Find next/prev lessons (Quick win for navigation)
   const [prevLesson, nextLesson] = await Promise.all([
-    prisma.lesson.findFirst({
-      where: { type: lesson.type, id: { lt: lesson.id } },
-      orderBy: { id: 'desc' }
+    db.query.lessons.findFirst({
+      where: (lessons, { and }) => and(eq(lessons.type, lesson.type), lt(lessons.id, lesson.id)),
+      orderBy: [desc(lessons.id)]
     }),
-    prisma.lesson.findFirst({
-      where: { type: lesson.type, id: { gt: lesson.id } },
-      orderBy: { id: 'asc' }
+    db.query.lessons.findFirst({
+      where: (lessons, { and }) => and(eq(lessons.type, lesson.type), gt(lessons.id, lesson.id)),
+      orderBy: [asc(lessons.id)]
     })
   ]);
 

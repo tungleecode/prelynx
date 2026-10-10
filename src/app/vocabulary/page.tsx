@@ -1,7 +1,9 @@
 export const runtime = "edge";
 export const revalidate = 600; // Cache 10 minutes
 
-import prisma from '@/lib/prisma'
+import { db } from '@/lib/db'
+import { lessons, users, flashcardReviews } from '@/lib/db/schema'
+import { eq, inArray } from 'drizzle-orm'
 import Link from 'next/link'
 import VocabDeck from './VocabDeck'
 import { auth } from "@/auth";
@@ -11,9 +13,9 @@ export default async function VocabularyPage({ searchParams }: { searchParams: P
   const tab = resolvedParams.tab || 'sotu';
   const session = await auth();
   
-  const articles = await prisma.lesson.findMany({
-    where: { type: { in: ['reading', 'press'] } },
-    select: { id: true, type: true, data: true }
+  const articles = await db.query.lessons.findMany({
+    where: inArray(lessons.type, ['reading', 'press']),
+    columns: { id: true, type: true, data: true }
   });
 
   // Extract all vocab
@@ -34,10 +36,10 @@ export default async function VocabularyPage({ searchParams }: { searchParams: P
   // Fetch real SR2 progress if logged in
   let dueCount = 0;
   if (session && session.user) {
-    const user = await prisma.user.findUnique({ where: { email: session.user.email! } });
+    const user = await db.query.users.findFirst({ where: eq(users.email, session.user.email!) });
     if (user) {
-      const reviews = await prisma.flashcardReview.findMany({
-        where: { userId: user.id }
+      const reviews = await db.query.flashcardReviews.findMany({
+        where: eq(flashcardReviews.userId, user.id)
       });
       const reviewMap = new Map(reviews.map(r => [r.word, r]));
       

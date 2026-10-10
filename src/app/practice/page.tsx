@@ -1,13 +1,15 @@
 export const runtime = "edge";
-import prisma from '@/lib/prisma'
+import { db } from '@/lib/db'
+import { lessons as lessonsSchema } from '@/lib/db/schema'
+import { eq, desc } from 'drizzle-orm'
 import Link from 'next/link'
 
 export default async function PracticePage() {
   // Lấy ra một số bài đọc ngẫu nhiên hoặc mới nhất để làm grid
-  const lessons = await prisma.lesson.findMany({
-    where: { type: 'reading' },
-    take: 12,
-    orderBy: { id: 'desc' }
+  const lessons = await db.query.lessons.findMany({
+    where: eq(lessonsSchema.type, 'reading'),
+    limit: 12,
+    orderBy: [desc(lessonsSchema.id)]
   });
 
   return (

@@ -1,11 +1,11 @@
 import NextAuth from "next-auth"
 import GoogleProvider from "next-auth/providers/google"
 import DiscordProvider from "next-auth/providers/discord"
-import { PrismaAdapter } from "@auth/prisma-adapter"
-import prisma from "@/lib/prisma"
+import { DrizzleAdapter } from "@auth/drizzle-adapter"
+import { db } from "@/lib/db"
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
-  adapter: PrismaAdapter(prisma),
+  adapter: DrizzleAdapter(db),
   providers: [
     GoogleProvider({
       clientId: process.env.GOOGLE_CLIENT_ID || "",

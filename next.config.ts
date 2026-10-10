@@ -8,7 +8,7 @@ const nextConfig: NextConfig = {
     },
   },
   // Only run Prisma client in Node.js context, not the Edge bundle
-  serverExternalPackages: ["@prisma/client", "@tidbcloud/serverless"],
+  serverExternalPackages: ["@tidbcloud/serverless"],
 };
 
 export default nextConfig;

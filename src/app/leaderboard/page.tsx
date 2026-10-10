@@ -2,7 +2,9 @@ export const runtime = "edge";
 export const revalidate = 60; // Revalidate every 1 minute
 
 import { auth } from "@/auth";
-import prisma from "@/lib/prisma";
+import { db } from "@/lib/db";
+import { users, userProgresses } from "@/lib/db/schema";
+import { desc, eq, inArray, count, and } from "drizzle-orm";
 import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
@@ -14,24 +16,26 @@ export default async function LeaderboardPage() {
   }
 
   // Fetch top 50 users based on Gems
-  const topUsers = await prisma.user.findMany({
-    take: 50,
-    orderBy: { gems: 'desc' },
-    select: {
-      id: true,
-      name: true,
-      image: true,
-      gems: true,
-      streak: true,
-      _count: {
-        select: {
-          progress: {
-            where: { completed: true }
-          }
-        }
-      }
-    }
+  const topUsersData = await db.query.users.findMany({
+    limit: 50,
+    orderBy: [desc(users.gems)],
+    columns: { id: true, name: true, image: true, gems: true, streak: true }
   });
+
+  const userIds = topUsersData.map(u => u.id);
+  const progressCounts = userIds.length > 0 ? await db.select({
+    userId: userProgresses.userId,
+    value: count()
+  }).from(userProgresses)
+    .where(and(inArray(userProgresses.userId, userIds), eq(userProgresses.completed, true)))
+    .groupBy(userProgresses.userId) : [];
+
+  const countMap = new Map(progressCounts.map(p => [p.userId, p.value]));
+
+  const topUsers = topUsersData.map(u => ({
+    ...u,
+    _count: { progress: countMap.get(u.id) || 0 }
+  }));
 
   return (
     <div className="min-h-screen p-4 md:p-8 flex flex-col items-center gap-8 w-full pb-20 relative overflow-hidden">

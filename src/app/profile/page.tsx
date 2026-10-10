@@ -2,7 +2,9 @@ export const runtime = "edge";
 
 import { auth } from "@/auth";
 import { redirect } from 'next/navigation';
-import prisma from '@/lib/prisma';
+import { db } from '@/lib/db';
+import { users, essaySubmissions } from '@/lib/db/schema';
+import { eq, desc } from 'drizzle-orm';
 import Link from 'next/link';
 
 export default async function ProfilePage() {
@@ -11,18 +13,22 @@ export default async function ProfilePage() {
     redirect('/login');
   }
 
-  const user = await prisma.user.findUnique({
-    where: { email: session.user.email! },
-    select: {
+  const user = await db.query.users.findFirst({
+    where: eq(users.email, session.user.email!),
+    columns: {
       id: true, name: true, image: true, email: true,
       streak: true, gems: true, currentBand: true, targetBand: true,
+    },
+    with: {
       essays: {
-        orderBy: { submittedAt: 'desc' },
-        take: 10,
-        select: {
+        orderBy: [desc(essaySubmissions.submittedAt)],
+        limit: 10,
+        columns: {
           id: true, score: true, submittedAt: true,
           lessonId: true, wordCount: true, content: true, feedback: true,
-          lesson: { select: { id: true, type: true, data: true } }
+        },
+        with: {
+          lesson: { columns: { id: true, type: true, data: true } }
         }
       }
     }
