@@ -1,7 +1,7 @@
 export const runtime = "edge";
 import Link from 'next/link';
 import { db } from '@/lib/db';
-import { users, userProgresses } from '@/lib/db/schema';
+import { users, userProgresses, flashcardReviews, essaySubmissions } from '@/lib/db/schema';
 import { eq, and, count } from 'drizzle-orm';
 import { auth } from "@/auth";
 import { redirect } from 'next/navigation';

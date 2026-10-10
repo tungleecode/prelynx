@@ -3,7 +3,7 @@ export const runtime = "edge";
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { db } from '@/lib/db'
-import { users, userProgresses, flashcardReviews } from '@/lib/db/schema'
+import { users, userProgresses, flashcardReviews, lessons } from '@/lib/db/schema'
 import { eq, count, and, gte, lte } from 'drizzle-orm'
 import { auth } from "@/auth";
 
