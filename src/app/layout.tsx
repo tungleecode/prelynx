@@ -48,6 +48,7 @@ export const metadata: Metadata = {
 import AuthProvider from "../components/AuthProvider";
 import NextTopLoader from 'nextjs-toploader';
 import BottomNav from "../components/BottomNav";
+import AntiScrape from "../components/AntiScrape";
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -56,6 +57,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col relative pb-24 md:pb-0">
+        <AntiScrape />
         <NextTopLoader color="#c1a063" showSpinner={false} shadow="0 0 10px #c1a063,0 0 5px #c1a063" />
         <AuthProvider>
           <GlobalNavbar />
