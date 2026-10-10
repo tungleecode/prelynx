@@ -1,12 +1,8 @@
 export const runtime = "edge";
 import prisma from '@/lib/prisma'
 import Link from 'next/link'
-import Image from 'next/image'
 
-export default async function PracticePage({ searchParams }: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
-  const resolvedParams = await searchParams;
-  const filter = Array.isArray(resolvedParams.filter) ? resolvedParams.filter[0] : resolvedParams.filter || 'all';
-
+export default async function PracticePage() {
   // Lấy ra một số bài đọc ngẫu nhiên hoặc mới nhất để làm grid
   const lessons = await prisma.lesson.findMany({
     where: { type: 'reading' },

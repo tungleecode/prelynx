@@ -5,14 +5,24 @@ import VocabDeck from './VocabDeck'
 
 import { auth } from "@/auth";
 
+import { unstable_cache } from "next/cache";
+
+const getArticles = unstable_cache(
+  async () => {
+    return await prisma.lesson.findMany({
+      where: { type: { in: ['reading', 'press'] } }
+    });
+  },
+  ['vocabulary-articles'],
+  { revalidate: 600 } // Cache for 10 minutes
+);
+
 export default async function VocabularyPage({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   const resolvedParams = await searchParams;
   const tab = resolvedParams.tab || 'sotu';
   const session = await auth();
   
-  const articles = await prisma.lesson.findMany({
-    where: { type: { in: ['reading', 'press'] } }
-  });
+  const articles = await getArticles();
 
   // Extract all vocab
   let allVocab: any[] = [];

@@ -6,31 +6,41 @@ import Image from "next/image";
 import Link from "next/link";
 import { redirect } from "next/navigation";
 
+import { unstable_cache } from "next/cache";
+
+const getTopUsers = unstable_cache(
+  async () => {
+    return await prisma.user.findMany({
+      take: 50,
+      orderBy: { gems: 'desc' },
+      select: {
+        id: true,
+        name: true,
+        image: true,
+        gems: true,
+        streak: true,
+        _count: {
+          select: {
+            progress: {
+              where: { completed: true }
+            }
+          }
+        }
+      }
+    });
+  },
+  ['leaderboard-top-users'],
+  { revalidate: 60 }
+);
+
 export default async function LeaderboardPage() {
   const session = await auth();
   if (!session || !session.user) {
     redirect("/login?callbackUrl=/leaderboard");
   }
 
-  // Fetch top 50 users based on Gems
-  const topUsers = await prisma.user.findMany({
-    take: 50,
-    orderBy: { gems: 'desc' },
-    select: {
-      id: true,
-      name: true,
-      image: true,
-      gems: true,
-      streak: true,
-      _count: {
-        select: {
-          progress: {
-            where: { completed: true }
-          }
-        }
-      }
-    }
-  });
+  // Fetch top 50 users based on Gems (Cached)
+  const topUsers = await getTopUsers();
 
   return (
     <div className="min-h-screen p-4 md:p-8 flex flex-col items-center gap-8 w-full pb-20 relative overflow-hidden">
