@@ -1,3 +1,4 @@
+export const runtime = "edge";
 
 import { auth } from "@/auth";
 import prisma from "@/lib/prisma";
